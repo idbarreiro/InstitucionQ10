@@ -1,24 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Application.Features.Students.Commands;
+using Application.Features.Students.Queries;
+using Domain.Entities;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Domain.Entities;
-using Persistence.Context;
 
 namespace WebApp.Pages.Students
 {
     public class EditModel : PageModel
     {
-        private readonly Persistence.Context.ApplicationDbContext _context;
-
-        public EditModel(Persistence.Context.ApplicationDbContext context)
-        {
-            _context = context;
-        }
+        private readonly IMediator? _mediator;
+        protected IMediator Mediator => _mediator ?? HttpContext.RequestServices.GetService<IMediator>()!;
 
         [BindProperty]
         public Student Student { get; set; } = default!;
@@ -30,12 +23,17 @@ namespace WebApp.Pages.Students
                 return NotFound();
             }
 
-            var student =  await _context.Students.FirstOrDefaultAsync(m => m.Id == id);
+            var student =  await Mediator.Send(new GetStudentByIdQuery { Id = id });
+
             if (student == null)
             {
                 return NotFound();
             }
-            Student = student;
+            else 
+            {
+                Student = student;
+            }
+                
             return Page();
         }
 
@@ -48,30 +46,16 @@ namespace WebApp.Pages.Students
                 return Page();
             }
 
-            _context.Attach(Student).State = EntityState.Modified;
-
             try
             {
-                await _context.SaveChangesAsync();
+                await Mediator.Send(new UpdateStudentCommand { Student = Student });
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!StudentExists(Student.Id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                throw;                
             }
 
             return RedirectToPage("./Index");
-        }
-
-        private bool StudentExists(int id)
-        {
-            return _context.Students.Any(e => e.Id == id);
         }
     }
 }

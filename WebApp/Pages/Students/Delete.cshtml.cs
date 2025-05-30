@@ -1,23 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Application.Features.Students.Commands;
+using Application.Features.Students.Queries;
+using Domain.Entities;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using Domain.Entities;
 using Persistence.Context;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace WebApp.Pages.Students
 {
     public class DeleteModel : PageModel
     {
-        private readonly Persistence.Context.ApplicationDbContext _context;
+        private readonly IMediator? _mediator;
 
-        public DeleteModel(Persistence.Context.ApplicationDbContext context)
-        {
-            _context = context;
-        }
+        protected IMediator Mediator => _mediator ?? HttpContext.RequestServices.GetService<IMediator>()!;
 
         [BindProperty]
         public Student Student { get; set; } = default!;
@@ -29,7 +29,8 @@ namespace WebApp.Pages.Students
                 return NotFound();
             }
 
-            var student = await _context.Students.FirstOrDefaultAsync(m => m.Id == id);
+            var student = await Mediator.Send(new GetStudentByIdQuery { Id = id });
+            ;
 
             if (student == null)
             {
@@ -49,12 +50,13 @@ namespace WebApp.Pages.Students
                 return NotFound();
             }
 
-            var student = await _context.Students.FindAsync(id);
-            if (student != null)
+            try
             {
-                Student = student;
-                _context.Students.Remove(Student);
-                await _context.SaveChangesAsync();
+                await Mediator.Send(new DeleteStudentCommand { Id = id });
+            }
+            catch (Exception)
+            {
+                throw;
             }
 
             return RedirectToPage("./Index");

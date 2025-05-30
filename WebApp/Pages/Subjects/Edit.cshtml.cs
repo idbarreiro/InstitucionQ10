@@ -1,24 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Application.Features.Subjects.Commands;
+using Application.Features.Subjects.Queries;
+using Domain.Entities;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Domain.Entities;
-using Persistence.Context;
 
 namespace WebApp.Pages.Subjects
 {
     public class EditModel : PageModel
     {
-        private readonly Persistence.Context.ApplicationDbContext _context;
-
-        public EditModel(Persistence.Context.ApplicationDbContext context)
-        {
-            _context = context;
-        }
+        private readonly IMediator? _mediator;
+        protected IMediator Mediator => _mediator ?? HttpContext.RequestServices.GetService<IMediator>()!;
 
         [BindProperty]
         public Subject Subject { get; set; } = default!;
@@ -30,12 +23,17 @@ namespace WebApp.Pages.Subjects
                 return NotFound();
             }
 
-            var subject =  await _context.Subjects.FirstOrDefaultAsync(m => m.Id == id);
+            var subject = await Mediator.Send(new GetSubjectByIdQuery { Id = id });
+
             if (subject == null)
             {
                 return NotFound();
             }
-            Subject = subject;
+            else 
+            {
+                Subject = subject;
+            }
+                
             return Page();
         }
 
@@ -48,30 +46,16 @@ namespace WebApp.Pages.Subjects
                 return Page();
             }
 
-            _context.Attach(Subject).State = EntityState.Modified;
-
             try
             {
-                await _context.SaveChangesAsync();
+                await Mediator.Send(new UpdateSubjectCommand { Subject = Subject });
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!SubjectExists(Subject.Id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                throw;
             }
 
             return RedirectToPage("./Index");
-        }
-
-        private bool SubjectExists(int id)
-        {
-            return _context.Subjects.Any(e => e.Id == id);
         }
     }
 }

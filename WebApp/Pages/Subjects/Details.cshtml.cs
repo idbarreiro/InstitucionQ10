@@ -1,23 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Application.Features.Subjects.Queries;
+using Domain.Entities;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
-using Domain.Entities;
-using Persistence.Context;
 
 namespace WebApp.Pages.Subjects
 {
     public class DetailsModel : PageModel
     {
-        private readonly Persistence.Context.ApplicationDbContext _context;
+        private readonly IMediator? _mediator;
 
-        public DetailsModel(Persistence.Context.ApplicationDbContext context)
-        {
-            _context = context;
-        }
+        protected IMediator Mediator => _mediator ?? HttpContext.RequestServices.GetService<IMediator>()!;
 
         public Subject Subject { get; set; } = default!;
 
@@ -28,7 +21,8 @@ namespace WebApp.Pages.Subjects
                 return NotFound();
             }
 
-            var subject = await _context.Subjects.FirstOrDefaultAsync(m => m.Id == id);
+            var subject = await Mediator.Send(new GetSubjectByIdQuery { Id = id });
+
             if (subject == null)
             {
                 return NotFound();

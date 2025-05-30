@@ -1,23 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Application.Features.Subjects.Commands;
+using Application.Features.Subjects.Queries;
+using Domain.Entities;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
-using Domain.Entities;
-using Persistence.Context;
 
 namespace WebApp.Pages.Subjects
 {
     public class DeleteModel : PageModel
     {
-        private readonly Persistence.Context.ApplicationDbContext _context;
+        private readonly IMediator? _mediator;
 
-        public DeleteModel(Persistence.Context.ApplicationDbContext context)
-        {
-            _context = context;
-        }
+        protected IMediator Mediator => _mediator ?? HttpContext.RequestServices.GetService<IMediator>()!;
 
         [BindProperty]
         public Subject Subject { get; set; } = default!;
@@ -29,7 +23,7 @@ namespace WebApp.Pages.Subjects
                 return NotFound();
             }
 
-            var subject = await _context.Subjects.FirstOrDefaultAsync(m => m.Id == id);
+            var subject = await Mediator.Send(new GetSubjectByIdQuery { Id = id });
 
             if (subject == null)
             {
@@ -49,12 +43,13 @@ namespace WebApp.Pages.Subjects
                 return NotFound();
             }
 
-            var subject = await _context.Subjects.FindAsync(id);
-            if (subject != null)
+            try
             {
-                Subject = subject;
-                _context.Subjects.Remove(Subject);
-                await _context.SaveChangesAsync();
+                await Mediator.Send(new DeleteSubjectCommand { Id = id });
+            }
+            catch (Exception)
+            {
+                throw;
             }
 
             return RedirectToPage("./Index");

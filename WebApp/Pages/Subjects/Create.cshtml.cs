@@ -1,23 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Application.Features.Subjects.Commands;
+using Domain.Entities;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Domain.Entities;
-using Persistence.Context;
 
 namespace WebApp.Pages.Subjects
 {
     public class CreateModel : PageModel
     {
-        private readonly Persistence.Context.ApplicationDbContext _context;
-
-        public CreateModel(Persistence.Context.ApplicationDbContext context)
-        {
-            _context = context;
-        }
+        private readonly IMediator? _mediator;
+        protected IMediator Mediator => _mediator ?? HttpContext.RequestServices.GetService<IMediator>()!;
 
         public IActionResult OnGet()
         {
@@ -35,8 +27,14 @@ namespace WebApp.Pages.Subjects
                 return Page();
             }
 
-            _context.Subjects.Add(Subject);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await Mediator.Send(new CreateSubjectCommand { Subject = Subject });
+            }
+            catch (Exception)
+            {
+                throw;
+            }
 
             return RedirectToPage("./Index");
         }

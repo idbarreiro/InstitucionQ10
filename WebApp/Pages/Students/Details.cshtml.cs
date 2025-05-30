@@ -1,23 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Application.Features.Students.Queries;
+using Domain.Entities;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
-using Domain.Entities;
-using Persistence.Context;
 
 namespace WebApp.Pages.Students
 {
     public class DetailsModel : PageModel
     {
-        private readonly Persistence.Context.ApplicationDbContext _context;
+        private readonly IMediator? _mediator;
 
-        public DetailsModel(Persistence.Context.ApplicationDbContext context)
-        {
-            _context = context;
-        }
+        protected IMediator Mediator => _mediator ?? HttpContext.RequestServices.GetService<IMediator>()!;
 
         public Student Student { get; set; } = default!;
 
@@ -28,7 +21,8 @@ namespace WebApp.Pages.Students
                 return NotFound();
             }
 
-            var student = await _context.Students.FirstOrDefaultAsync(m => m.Id == id);
+            var student = await Mediator.Send(new GetStudentByIdQuery { Id = id });
+
             if (student == null)
             {
                 return NotFound();

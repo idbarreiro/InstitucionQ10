@@ -1,18 +1,15 @@
-﻿using Domain.Entities;
+﻿using Application.Features.Students.Commands;
+using Domain.Entities;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Persistence.Context;
 
 namespace WebApp.Pages.Students
 {
     public class CreateModel : PageModel
     {
-        private readonly ApplicationDbContext _context;
-
-        public CreateModel(ApplicationDbContext context)
-        {
-            _context = context;
-        }
+        private readonly IMediator? _mediator;
+        protected IMediator Mediator => _mediator ?? HttpContext.RequestServices.GetService<IMediator>()!;
 
         public IActionResult OnGet()
         {
@@ -30,9 +27,15 @@ namespace WebApp.Pages.Students
                 return Page();
             }
 
-            _context.Students.Add(Student);
-            await _context.SaveChangesAsync();
-
+            try
+            {
+                await Mediator.Send(new CreateStudentCommand { Student = Student });
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            
             return RedirectToPage("./Index");
         }
     }
